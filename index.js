@@ -118,7 +118,7 @@ app.get('/printful-mockups', async (req,res)=>{
     let isProcessed = false
     let generationResult;
     try {
-        const response = await fetch(`https://api.printful.com/mockup-generator/create-task/${body.prodId}`, fetchOptions)
+        const response = await fetch(`https://api.printful.com/mockup-generator/create-task/${body.prodId}`,fetchOptions)
 
         if(!response.ok){
             const responseError = await response.json()
@@ -158,7 +158,7 @@ app.get('/printful-mockups', async (req,res)=>{
         }
 
         console.log(generationResult)
-        res.json({result: generationResult})
+        res.json({front: generationResult.result.mockups[0].mockup_url, back: generationResult.result.mockups[1].mockup_url})
 
     } catch (error) {
         console.error(error)
