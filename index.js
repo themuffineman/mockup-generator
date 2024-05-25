@@ -168,12 +168,12 @@ app.post('/printful-mockups', async (req,res)=>{
 async function getImageDimensions(url) {
     try {
         if (url.startsWith('//')) {
-            url = 'https:' + url;  
+            const newUrl = 'https:' + url;  
         } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url; 
+            const newUrl = 'https://' + url; 
         }
 
-        const response = await fetch(url);
+        const response = await fetch(newUrl);
         if (!response.ok) {
             throw new Error(`Failed to fetch image: ${response.statusText}`);
         }
