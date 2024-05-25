@@ -167,11 +167,14 @@ app.post('/printful-mockups', async (req,res)=>{
 
 async function getImageDimensions(url) {
     try {
+        let newUrl;
         if (url.startsWith('//')) {
-            const newUrl = 'https:' + url;  
+            newUrl = 'https:' + url;  
         } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            const newUrl = 'https://' + url; 
+            newUrl = 'https://' + url; 
         }
+        console.log('heres the new url', newUrl)
+
 
         const response = await fetch(newUrl);
         if (!response.ok) {
