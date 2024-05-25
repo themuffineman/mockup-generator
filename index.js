@@ -16,12 +16,24 @@ app.listen(PORT, ()=> {console.log(`Server listening on port ${PORT}`)})
 
 app.post('/mediamodifier-mockups', async (req,res)=>{
     const body = req.body
-    console.log('Received', body)
+    console.log('Received', body.src)
+    let newUrl;
+
+
+    if (body.src.startsWith('//')) {
+        newUrl = 'https:' + body.src;  
+    } else if (!body.src.startsWith('http://') && !body.src.startsWith('https://')) {
+        newUrl = 'https://' + body.src; 
+    }else{
+        newUrl = body.src
+    }
+    
+    console.log('heres the new url', newUrl)
     
     const url = 'https://api.mediamodifier.com/v2/mockup/render';
     
     try {
-        const metadata = await getImageDimensions(body.src)
+        const metadata = await getImageDimensions(newUrl)
         const fetchOptions = {
         method: 'POST',  
         headers: {
@@ -35,7 +47,7 @@ app.post('/mediamodifier-mockups', async (req,res)=>{
             "layer_inputs": [
             {
                 "id": "juqu6evm8k4dtcu835p",
-                "data": body.src,
+                "data": newUrl,
                 "crop": {
                 "x": 0,
                 "y": 0,
@@ -73,8 +85,19 @@ app.post('/mediamodifier-mockups', async (req,res)=>{
 app.post('/printful-mockups', async (req,res)=>{
     const body = req.body
     console.log('Received', body)
+    let newUrl;
 
-    
+
+    if (body.src.startsWith('//')) {
+        newUrl = 'https:' + body.src;  
+    } else if (!body.src.startsWith('http://') && !body.src.startsWith('https://')) {
+        newUrl = 'https://' + body.src; 
+    }else{
+        newUrl = body.src
+    }
+
+    console.log('heres the new url', newUrl)
+
     let isProcessed = false
     let generationResult;
     const maxWidth = 1800
@@ -83,7 +106,7 @@ app.post('/printful-mockups', async (req,res)=>{
     const variantId = 10288
 
     try {
-        const metadata = await getImageDimensions(body.src)
+        const metadata = await getImageDimensions(newUrl)
         const fetchOptions = {
             method: "POST",
             headers: {
@@ -97,7 +120,7 @@ app.post('/printful-mockups', async (req,res)=>{
               "files": [
                 {
                   "placement": "front",
-                  "image_url": `${body.src}`,
+                  "image_url": `${newUrl}`,
                   "position": {
                     "area_width": maxWidth,
                     "area_height": maxHeight,
@@ -167,16 +190,9 @@ app.post('/printful-mockups', async (req,res)=>{
 
 async function getImageDimensions(url) {
     try {
-        let newUrl;
-        if (url.startsWith('//')) {
-            newUrl = 'https:' + url;  
-        } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            newUrl = 'https://' + url; 
-        }
-        console.log('heres the new url', newUrl)
 
 
-        const response = await fetch(newUrl);
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`Failed to fetch image: ${response.statusText}`);
         }
