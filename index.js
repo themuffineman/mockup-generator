@@ -1,6 +1,7 @@
-import fetch from 'node-fetch'
 import express from 'express'
 import cors from 'cors'
+import sharp from 'sharp'
+import axios from 'axios'
 
 const PORT = 8080
 const app = express()
@@ -13,46 +14,48 @@ app.use(cors({
 
 app.listen(PORT, ()=> {console.log(`Server listening on port ${PORT}`)})
 
-app.get('/mockups', async (req,res)=>{
-    console.log('Receved Request')
-    const fetchOptions = {
-    method: 'POST', // Include the HTTP method
-    headers: {
-        'api_key': '89a76258-2d04-438f-8a8a-cb1e68922065',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-        "nr": 520,
-        "image_type": "jpeg",
-        "layer_inputs": [
-        {
-            "id": "juqu6evm8k4dtcu835p",
-            "data": 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&w=600',
-            "crop": {
-            "x": 0,
-            "y": 0,
-            "width": 1172,
-            "height": 1168
-            },
-            "checked": true
-        },
-        {
-            "id": "ea18e8f6-1e41-4a5e-bbe2-a469e2fea45d",
-            "checked": true,
-            "color": {
-            "red": 254,
-            "green": 186,
-            "blue": 227
-            }
-        }
-        ]
-    })
-    };
-
+app.post('/mediamodifier-mockups', async (req,res)=>{
+    const body = req.body
+    console.log('Received', body)
+    
     const url = 'https://api.mediamodifier.com/v2/mockup/render';
-
+    
     try {
+        const metadata = await getImageDimensions(body.src)
+        const fetchOptions = {
+        method: 'POST',  
+        headers: {
+            'api_key': '89a76258-2d04-438f-8a8a-cb1e68922065',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            "nr": 520,
+            "image_type": "jpeg",
+            "layer_inputs": [
+            {
+                "id": "juqu6evm8k4dtcu835p",
+                "data": body.src,
+                "crop": {
+                "x": 0,
+                "y": 0,
+                "width": metadata.width,
+                "height": metadata.height
+                },
+                "checked": true
+            },
+            {
+                "id": "ea18e8f6-1e41-4a5e-bbe2-a469e2fea45d",
+                "checked": true,
+                "color": {
+                "red": 254,
+                "green": 186,
+                "blue": 227
+                }
+            }
+            ]
+        })
+        };
         const response = await fetch(url, fetchOptions);
         if (!response.ok) {
             const errorResponse = await response.json()
@@ -67,103 +70,54 @@ app.get('/mockups', async (req,res)=>{
     }
 })
 
-app.get('/printful-mockups', async (req,res)=>{
+app.post('/printful-mockups', async (req,res)=>{
     const body = req.body
-    console.log('Received Request')
-    const shirtFetchOptions = {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json', 
-          'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
-          'X-PF-Store-Id': '8893037'
-        },
-        body: JSON.stringify({
-          "variant_ids": [17057],
-          "format": "jpg",
-          "files": [
-            {
-              "placement": "front",
-              "image_url": `${body.src}`,
-              "position": {
-                "area_width": 2325,
-                "area_height": 2940,
-                "width": 2325,
-                "height": 2325,
-                "top": 307,
-                "left": 0
-              }
-            }
-          ]
-        })
-    }
-    const toteFetchOptions = {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json', 
-            'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
-            'X-PF-Store-Id': '8893037'
-        },
-        body: JSON.stringify({
-            "variant_ids": [9039],
-            "format": "jpg",
-            "files": [
-            {
-                "placement": "default",
-                "image_url": `${body.src}`,
-                "position": {
-                "area_width": 3150,
-                "area_height": 5550,
-                "width": 3150,
-                "height": 3150,
-                "top": 1200,
-                "left": 0
-                }
-            }
-            ]
-        })
-    }
-    const hoodieFetchOptions = {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json', 
-            'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
-            'X-PF-Store-Id': '8893037'
-        },
-        body: JSON.stringify({
-            "variant_ids": [9039],
-            "format": "jpg",
-            "files": [
-            {
-                "placement": "front",
-                "image_url": `${body.src}`,
-                "position": {
-                "area_width": 1650,
-                "area_height": 1650,
-                "width": 1650,
-                "height": 1650,
-                "top": 0,
-                "left": 0
-                }
-            }
-            ]
-        })
-    }   
+    console.log('Received', body)
+
     
-    const pollingOptions = {
-        headers: {
-          'Content-Type': 'application/json', 
-          'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
-          'X-PF-Store-Id': '8893037'
-        },
-    }
     let isProcessed = false
     let generationResult;
-    const fetchOptions = body.product === 'shirt' ? shirtFetchOptions : body.product === 'tote' ? toteFetchOptions : body.product === 'hoodie' ? hoodieFetchOptions : null;
+    const maxWidth = 1800
+    const maxHeight = 2400
+    const productId = 362
+    const variantId = 10288
+
     try {
-        if (!fetchOptions) {
-            throw new Error('Unsupported product type');
+        const metadata = await getImageDimensions(body.src)
+        const fetchOptions = {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json', 
+              'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
+              'X-PF-Store-Id': '8893037'
+            },
+            body: JSON.stringify({
+              "variant_ids": [variantId],
+              "format": "jpg",
+              "files": [
+                {
+                  "placement": "front",
+                  "image_url": `${body.src}`,
+                  "position": {
+                    "area_width": maxWidth,
+                    "area_height": maxHeight,
+                    "width": metadata.width > maxWidth ? maxWidth : metadata.width,
+                    "height": metadata.height > maxHeight ? maxHeight : metadata.height,
+                    "top": metadata.height < maxHeight ? (maxHeight - metadata.height)/2 : 0,
+                    "left": metadata.width < maxWidth ? (maxWidth - metadata.width)/2 : 0
+                  }
+                }
+              ]
+            })
         }
-        const response = await fetch(`https://api.printful.com/mockup-generator/create-task/${body.prodId}`, fetchOptions);
+        const pollingOptions = {
+            headers: {
+              'Content-Type': 'application/json', 
+              'Authorization': 'Bearer 68rqPPLBt445UqlMJiLYzguZr411OR2j0LLO9Q92',
+              'X-PF-Store-Id': '8893037'
+            },
+        }
+        const response = await fetch(`https://api.printful.com/mockup-generator/create-task/${productId}`, fetchOptions);
         if(!response.ok){
             const responseError = await response.json()
             console.log(responseError)
@@ -202,34 +156,36 @@ app.get('/printful-mockups', async (req,res)=>{
         }
 
         console.log(generationResult)
-        res.json({front: generationResult.result.mockups[0].mockup_url, back: generationResult.result.mockups[1].mockup_url}).status(201)
+        res.json({result: generationResult.result.mockups[0].mockup_url}).status(201)
 
     } catch (error) {
         console.error(error)
         res.json({error}).status(500)
     }
-})
+}) 
 
-app.get('/store-id', async(req,res)=>{
-    const url = 'https://api.printful.com/stores'; // Endpoint to get store information
 
-    const fetchOptions = {
-        method: "GET",
-        headers: {
-            'Content-Type': 'application/json', 
-            'Authorization': 'Bearer NBvQgZTGG8ZC3heGlZJeXj2ZFt1PHLVFIPwYUcP1' // Replace with your actual OAuth token
-        }
-    }
+async function getImageDimensions(url) {
     try {
-        const response = await fetch(url, fetchOptions);
-    
+        const response = await fetch(url);
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
         }
-    
-        const data = await response.json();
-        console.log(data);
+
+        // Convert the response to an ArrayBuffer
+        const arrayBuffer = await response.arrayBuffer();
+
+        // Convert the ArrayBuffer to a Buffer
+        const imageBuffer = Buffer.from(arrayBuffer);
+
+        const metadata = await sharp(imageBuffer).metadata();
+
+        const width = metadata.width;
+        const height = metadata.height;
+
+        return { width, height };
     } catch (error) {
-        console.error('Error fetching store information:', error);
+        console.error('Error fetching or processing image:', error);
+        throw error;
     }
-})  
+}
