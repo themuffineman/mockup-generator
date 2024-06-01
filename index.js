@@ -22,10 +22,7 @@ app.post('/mediamodifier-mockups', async (req,res)=>{
     console.log('Heres the new url', newUrl)
 
     const url = 'https://api.mediamodifier.com/v2/mockup/render';
-
-    const imageType = await getImageType(src)
-    console.log('The image is type:', imageType)
-
+    
     // if (body.src.startsWith('//')) {
     //     newUrl = 'https:' + body.src;  
     // } else if (!body.src.startsWith('http://') && !body.src.startsWith('https://')) {
@@ -45,7 +42,7 @@ app.post('/mediamodifier-mockups', async (req,res)=>{
         },
         body: JSON.stringify({
             "nr": 520,
-            "image_type": imageType? imageType : 'jpeg',
+            "image_type": 'jpeg',
             "layer_inputs": [
             {
                 "id": "juqu6evm8k4dtcu835p",
