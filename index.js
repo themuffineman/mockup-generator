@@ -15,23 +15,25 @@ app.use(cors({
 app.listen(PORT, ()=> {console.log(`Server listening on port ${PORT}`)})
 
 app.post('/mediamodifier-mockups', async (req,res)=>{
-    const body = req.body
-    console.log('Received', body.src)
-    let newUrl;
+    const {src} = req.body
+    console.log('Received', src)
 
+    const newUrl = modifyUrl(src)
+    console.log('Heres the new url', newUrl)
 
-    if (body.src.startsWith('//')) {
-        newUrl = 'https:' + body.src;  
-    } else if (!body.src.startsWith('http://') && !body.src.startsWith('https://')) {
-        newUrl = 'https://' + body.src; 
-    }else{
-        newUrl = body.src
-    }
-    
-    console.log('heres the new url', newUrl)
-    
     const url = 'https://api.mediamodifier.com/v2/mockup/render';
-    
+
+    const imageType = await getImageType(src)
+    console.log('The image is type:', imageType)
+
+    // if (body.src.startsWith('//')) {
+    //     newUrl = 'https:' + body.src;  
+    // } else if (!body.src.startsWith('http://') && !body.src.startsWith('https://')) {
+    //     newUrl = 'https://' + body.src; 
+    // }else{
+    //     newUrl = body.src
+    // }
+
     try {
         const metadata = await getImageDimensions(newUrl)
         const fetchOptions = {
@@ -43,7 +45,7 @@ app.post('/mediamodifier-mockups', async (req,res)=>{
         },
         body: JSON.stringify({
             "nr": 520,
-            "image_type": "jpeg",
+            "image_type": imageType? imageType : 'jpeg',
             "layer_inputs": [
             {
                 "id": "juqu6evm8k4dtcu835p",
@@ -190,8 +192,6 @@ app.post('/printful-mockups', async (req,res)=>{
 
 async function getImageDimensions(url) {
     try {
-
-
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`Failed to fetch image: ${response.statusText}`);
@@ -212,5 +212,34 @@ async function getImageDimensions(url) {
     } catch (error) {
         console.error('Error fetching or processing image:', error);
         throw error;
+    }
+}
+function modifyUrl(url){
+    let newUrl
+
+    if (url.startsWith('//')) {
+        newUrl = 'https:' + url;  
+    }else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        newUrl = 'https://' + url; 
+    }else{
+        newUrl = url
+    }
+
+    return newUrl
+}
+async function getImageType(url) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }      
+      const contentType = response.headers.get('Content-Type');
+      if (contentType) {
+        return contentType;
+      }
+      
+    } catch (error) {
+      console.error('Error fetching image type');
+      return null;
     }
 }
